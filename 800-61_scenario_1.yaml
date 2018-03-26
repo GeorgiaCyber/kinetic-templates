@@ -1,0 +1,168 @@
+heat_template_version: queens
+
+description: NIST SP 800-61 rev 2 Scenario 1 - Domain Name System (DNS) Server Denial of Service(DoS)
+
+parameters:
+
+  user_id:
+    type: string
+    label: User ID
+    description: User ID Number.  If in a group setting, your instructor/facilitator will assign this number to you.  Otherwise, use any number between 0 and 255
+    default: 0
+
+  root_password:
+    type: string
+    label: Root Password
+    description: root password for DNS Server
+    hidden: true
+    default: changeme
+    constraints:
+      -  length: { min: 8, max: 20 }
+         description: Password must be between 8 and 20 characters
+      -  allowed_pattern: "[a-zA-Z0-9]*"
+         description: Password may not contain special characters
+
+  last_name:
+    type: string
+    label: Last Name
+    description: Last Name
+    default: 
+    constraints:
+      -  length: { min: 1, max: 15 }
+         description: Last name must be no longer than 15 characters
+      -  allowed_pattern: "[a-zA-Z]*"
+         description: Last name may only contain letters
+
+resources:
+
+  user-network:
+    type: OS::Neutron::Net
+    properties:
+      name:
+        str_replace:
+          template: lastName_Network
+          params:
+            lastName: { get_param: last_name }
+      port_security_enabled: false
+
+  user-subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      allocation_pools:
+        - start:
+            str_replace:
+              template: 10.userID.0.5
+              params:
+                userID: { get_param: user_id }
+          end:
+            str_replace:
+              template: 10.userID.0.250
+              params:
+                userID: { get_param: user_id }
+      cidr:
+        str_replace:
+          template: 10.userID.0.0/24
+          params:
+            userID: { get_param: user_id }
+      gateway_ip:
+        str_replace:
+          template: 10.userID.0.254
+          params:
+            userID: { get_param: user_id }
+      network: { get_resource: user-network }
+      dns_nameservers:
+        - 8.8.8.8
+      name:
+        str_replace:
+          template: lastname_subnet
+          params:
+            lastname: { get_param: last_name }
+
+  user-router:
+    type: OS::Neutron::Router    
+    properties:
+      name:
+        str_replace:
+          template: lastname_router
+          params:
+            lastname: { get_param: last_name }
+      external_gateway_info: {"network": public}
+
+  user-router-interface:
+    type:  OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: user-router }       
+      subnet_id: { get_resource: user-subnet }
+
+  float_ip:
+    type: OS::Neutron::FloatingIP
+    depends_on: user-router
+    properties: 
+      floating_network: public
+
+  float_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_resource: user-network }
+
+  float_ip_assoc:
+    type: OS::Neutron::FloatingIPAssociation
+    properties:
+      floatingip_id: { get_resource: float_ip }
+      port_id: { get_resource: float_port }
+
+  dns-server:
+    type: OS::Nova::Server
+    properties:
+      name: 
+        str_replace:
+          template: base-bind9
+          params:
+            base: { get_param: last_name }
+      image: Debian Stretch
+      flavor: cy.medium
+      networks:
+        - port: { get_resource: float_port }
+      user_data: 
+        str_replace:
+          template: |
+            #!/bin/bash
+            echo "root:$password" | chpasswd
+            apt-get update
+            apt-get install -y bind9 bind9utils bind9-doc dnsutils
+            sed '25i allow-query { any; };' /etc/bind/named.conf.options -i            
+            systemctl enable bind9.service
+            systemctl start bind9.service
+          params:
+            $password: { get_param: root_password }
+          user_data_format: RAW
+
+  attacker:
+    type: OS::Nova::Server
+    properties:
+      name:
+        str_replace:
+          template: base-attacker
+          params:
+            base: { get_param: last_name }
+      image: Debian Stretch
+      flavor: cy.medium
+      networks:
+        - network: public
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash
+            echo "root:$password" | chpasswd
+            apt-get update
+            apt-get -y install dnsutils
+            while true;do dig @$target_address google.com;done
+          params:
+            $password: { get_param: root_password }
+            $target_address: { get_attr: [float_ip, floating_ip_address] }
+          user_data_format: RAW
+
+outputs:
+  floating_ip:
+    description: Floating IP Address for bind9 server
+    value: { get_attr: [float_ip, floating_ip_address] }

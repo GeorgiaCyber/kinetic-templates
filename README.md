@@ -1,3 +1,21 @@
 # Georgia Cyber Range Scenarios
 
 Scenarios and related resources compatible with the Georgia Cyber Range.
+
+The first tranche of scenarios will be drawn from NIST SP 800-61 rev 2 (WIP)
+
+## Scenario 1: Domain Name System (DNS) Server Denial of Service (DoS)
+
+On a Saturday afternoon, external users start having problems accessing the organization’s public websites.
+Over the next hour, the problem worsens to the point where nearly every access attemptfails.
+Meanwhile, a member of the organization’s networking staff responds to alerts from an Internet border router and determines that the  organization’s Internet bandwidth is being consumed by an unusually large volume of User Datagram Protocol (UDP) packets to and from both the organization’s public DNS servers.
+Analysis of the traffic shows that the DNS servers are receiving high volumes of requests from a single external IP address.
+Also, all the DNS requests from that address come from the same source port.
+
+The following are additional questions for this scenario:
+
+1. Whom should the organization contact regarding the external IP address inquestion?
+2. Suppose that after the initial containment measures were put in place, the network administrators detected that nine internal hosts were also attempting the same unusual requests to the DNS server.
+How would that affect the handling of this incident?
+3. Suppose that two of the nine internal hosts disconnected from the network before their system owners were identified.
+How would the system owners be identified?

@@ -1,0 +1,50 @@
+heat_template_version: rocky
+
+description: Georgia Cyber Range Multiarch Demonstration
+
+resources:
+
+  demo_network:
+    type: OS::Neutron::Net
+    properties:
+      name: demo_network
+      port_security_enabled: false
+
+  demo_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name: demo_subnet
+      allocation_pools:
+        - start: 10.1.1.10
+          end: 10.1.1.100
+      cidr: 10.1.1.0/24
+      gateway_ip: 10.1.1.254
+      network: { get_resource: demo_network }
+      dns_nameservers:
+        - 10.101.255.254
+
+  demo_router:
+    type: OS::Neutron::Router
+    properties:
+      name: demo_router
+      external_gateway_info: {"network": public}
+
+  demo_router_interface:
+    type:  OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: demo_router }
+      subnet_id: { get_resource: demo_subnet }
+
+  demo_server:
+    type: OS::Nova::Server
+    properties:
+      name: demo_server
+      image: debian-aarch64
+      flavor: hack.c2.m4.d4
+      networks:
+        - network: { get_resource: demo_network }
+      user_data: |
+        #!/bin/bash
+        echo "root:toor" | chpasswd
+        uname -a
+      user_data_format: RAW

@@ -35,12 +35,11 @@ resources:
       router_id: { get_resource: demo_router }
       subnet_id: { get_resource: demo_subnet }
 
-server_group:
-  type: OS::Heat::ResourceGroup
-  properties:
-    count: 5
-    resource_def:
-      demo_server:
+  server_group:
+    type: OS::Heat::ResourceGroup
+    properties:
+      count: 5
+      resource_def:
         type: OS::Nova::Server
         properties:
           name: demo_server_%index%

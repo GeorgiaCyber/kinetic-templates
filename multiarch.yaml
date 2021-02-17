@@ -46,5 +46,6 @@ resources:
       user_data: |
         #!/bin/bash
         echo "root:toor" | chpasswd
-        uname -a
+        uname -a > myarch.txt
+        cat myarch.txt
       user_data_format: RAW

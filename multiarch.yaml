@@ -42,7 +42,7 @@ resources:
       resource_def:
         type: OS::Nova::Server
         properties:
-          name: demo_server_%index%
+          name: multiarch_demo_server_%index%
           image: debian-aarch64
           flavor: hack.c2.m4.d4
           networks:

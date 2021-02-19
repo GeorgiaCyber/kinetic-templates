@@ -35,15 +35,34 @@ resources:
       router_id: { get_resource: demo_router }
       subnet_id: { get_resource: demo_subnet }
 
-  server_group:
+  aarch64_server_group:
     type: OS::Heat::ResourceGroup
     properties:
-      count: 5
+      count: 2
       resource_def:
         type: OS::Nova::Server
         properties:
-          name: multiarch_demo_server_%index%
+          name: aarch64_demo_server_%index%
           image: debian-aarch64
+          flavor: hack.c2.m4.d4
+          networks:
+            - network: { get_resource: demo_network }
+          user_data: |
+            #!/bin/bash
+            echo "root:toor" | chpasswd
+            uname -a > myarch_%index%.txt
+            cat myarch_%index%.txt
+          user_data_format: RAW
+
+  ppc64le_server_group:
+    type: OS::Heat::ResourceGroup
+    properties:
+      count: 2
+      resource_def:
+        type: OS::Nova::Server
+        properties:
+          name: ppc64le_demo_server_%index%
+          image: debian-ppc64le
           flavor: hack.c2.m4.d4
           networks:
             - network: { get_resource: demo_network }
